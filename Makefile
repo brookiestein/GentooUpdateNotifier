@@ -3,7 +3,7 @@ CPPFLAGS := -lpthread -lnotify -I. $(shell pkg-config --cflags --libs libnotify)
 TARGET = GentooUpdateNotifier
 MV = mv -vf
 RM = rm -vf
-MKDIR = mkdir -vf
+MKDIR = mkdir -pv
 SOURCES = main.cpp notifier.cpp
 OBJECTS = ${SOURCES:.cpp=.o}
 PREFIX = /usr/local/bin

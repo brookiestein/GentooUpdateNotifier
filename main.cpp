@@ -92,7 +92,7 @@ run(unsigned long seconds)
 
                         std::string message = "There";
                         if (output == "1")
-                                message += " is 1 ";
+                                message += " is an update ";
                         else
                                 message += " are " + output + " updates ";
                         message += "available.";
