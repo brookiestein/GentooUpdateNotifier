@@ -18,4 +18,7 @@ sudo ./GentooUpdateNotifier 7 d
 ```
 It will synchronize every 7 days and tell you how many updates you have.
 
+# How to install and configure for easy use
+[![Gentoo Update Notifier Tutorial](https://img.youtube.com/vi/kBxD5K2NmS8/0.jpg)](https://www.youtube.com/watch?v=kBxD5K2NmS8)
+
 # Enjoy!
