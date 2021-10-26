@@ -7,42 +7,80 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <getopt.h>
 #include <unistd.h>
 
 #include "notifier.h"
 
+int usage(const std::string name);
 std::string exec(const char* command = "", bool deleteNewLineChar = false);
-int run(unsigned long seconds);
+int run(long seconds, bool also_layman);
 
 int
 main(int argc, char* argv[])
 {
-        unsigned long seconds {1};
-        if (argc >= 2) {
-                seconds = std::atoi(argv[1]);
-                if (argc > 2) {
-                        const unsigned minute = 60;
-                        const unsigned hour = 3600;
-                        const unsigned day = hour * 24;
+        long seconds {1};
+        char specifier {'s'};
+        bool also_layman {};
 
-                        switch (argv[2][0])
-                        {
-                        case 's': break;
-                        case 'm': seconds *= minute; break;
-                        case 'h': seconds *= hour; break;
-                        case 'd': seconds *= day; break;
-                        default:
-                                std::cerr << "Time not recognized." << std::endl;
-                                return 1;
-                        }
+        const struct option large_options[] = {
+                { "help",         no_argument,          0,      'h' },
+                { "layman",       no_argument,          0,      'l' },
+                { "specifier",    required_argument,    0,      's' },
+                { "time-to-wait", required_argument,    0,      't' },
+                { NULL, 0, NULL, 0 }
+        };
+
+        int option;
+        while ((option = getopt_long(argc, argv, "hls:t:", large_options, NULL)) >= 0) {
+                switch (option)
+                {
+                case 'h': return usage(argv[0]);
+                case 'l': also_layman = true; break;
+                case 's': specifier = optarg[0]; break;
+                case 't': seconds = std::atoi(optarg); break;
+                default: break;
                 }
-        } else {
-                /* Well, the 'day' variable does not exit here, but it doesn't hurt
-                 * to understand what's going on here. */
-                seconds *= (3600 * 24 * 2); /* Verify each two days. */
         }
 
-        return run(seconds);
+        if (geteuid() != 0) {
+                std::cerr << "You need to run me as user root." << std::endl;
+                return 1;
+        } else if (argc == 1) {
+                seconds = 3600 * 48; /* 2 days. */
+        }
+
+        if (specifier != 's') {
+                /* Seconds in either minutes, hours, or days. */
+                const unsigned minutes = 60;
+                const unsigned hours = 3600;
+                const unsigned days = hours * 24;
+                switch (specifier)
+                {
+                case 'm': seconds *= minutes; break;
+                case 'h': seconds *= hours; break;
+                case 'd': seconds *= days; break;
+                default:
+                        std::cerr << "Unknown time specifier." << std::endl;
+                        return 1;
+                }
+        }
+
+        return run(seconds, also_layman);
+}
+
+int
+usage(const std::string name)
+{
+        std::cout << name << " usage: " << "\n\n";
+        std::cout << "-h | --help" << "\t\t\t" << "Show this help." << '\n';
+        std::cout << "-l | --layman" << "\t\t\t" << "Synchronize layman's repositories too." << '\n';
+        std::cout << "-s | --specifier [s, m, h, d]" << '\t' << "Time to wait specifier." << '\n';
+        std::cout << "-t | --time-to-wait <time>" << "\t" << "Time to wait per se." << '\n';
+        std::cout << '\n' << "Note: In -s option, specifier means:" << '\n';
+        std::cout << "s = seconds, m = minutes, h = hours, d = days." << '\n';
+        std::cout << "If none is specified, seconds is default one." << std::endl;
+        return 0;
 }
 
 /* Credits: https://stackoverflow.com/users/854871/gregpaton08 */
@@ -66,22 +104,20 @@ exec(const char* command, bool deleteNewLineChar)
 }
 
 int
-run(unsigned long seconds)
+run(long seconds, bool also_layman)
 {
         while (true) {
                 try {
                         std::string command;
                         std::string output;
 
-#ifdef SYNCHRONIZE
-                        if (geteuid() == 0) {
-                                command = "emerge --sync";
-                                output = exec(command.c_str());
-                        } else {
-                                std::string message = "Couldn't synchronize because you're not root.";
-                                notify(message);
+                        command = "emerge --sync";
+                        exec(command.c_str());
+
+                        if (also_layman) {
+                                command = "layman --sync-all";
+                                exec(command.c_str());
                         }
-#endif
 
                         /* -puDN means: emerge --pretend --update --deep --newuse */
                         /* This will give us the number of packages that would be merged after synchronizing.

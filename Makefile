@@ -11,9 +11,6 @@ PREFIX = /usr/local/bin
 all : ${OBJECTS}
 	${CC} ${SOURCES} ${CPPFLAGS} -o ${TARGET}
 
-sync : ${OBJECTS}
-	${CC} ${SOURCES} ${CPPFLAGS} -DSYNCHRONIZE -o ${TARGET}
-
 clean :
 	${RM} ${OBJECTS}
 
@@ -24,4 +21,4 @@ install : all
 uninstall :
 	@${RM} ${PREFIX}/${TARGET}
 
-.PHONY : sync install uninstall
+.PHONY : clean install uninstall
